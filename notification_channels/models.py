@@ -4,7 +4,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.timesince import timesince
 from django.utils import timezone
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 # Create your models here.
@@ -15,7 +15,7 @@ class Notification(models.Model):
 	""" Notification Fields """
 
 	""" Type can be used to group different types of notifications together """
-	Type = models.CharField(max_length=255, blank=True, null=True)
+	notif_type = models.CharField(max_length=255, blank=True, null=True)
 
 	recipient = models.ForeignKey(User, null=False, blank=False, related_name="notifications", on_delete=models.CASCADE)
 
@@ -32,12 +32,6 @@ class Notification(models.Model):
 	action_obj_ctype = models.ForeignKey(ContentType, related_name='action_notifications', blank=True, null=True, on_delete=models.CASCADE)
 	action_obj_id = models.CharField(max_length=255, blank=True, null=True,)
 	action_obj = GenericForeignKey('action_obj_ctype', 'action_obj_id')
-
-	"""" Notification read or not """
-	read = models.BooleanField(default=False, blank=False)
-
-	""" Notification seen or not """
-	seen = models.BooleanField(default=False, blank=False)
 
 	""" Action verb is the activity that produced the notification
 		eg. <generator> commented on <action_obj>
@@ -96,6 +90,12 @@ class Activity(models.Model):
 	notification = models.ForeignKey(Notification, null=False, blank=False, related_name="activities", on_delete=models.CASCADE)
 	timestamp = models.DateTimeField(auto_now_add=True)
 
+	"""" Notification read or not """
+	read = models.BooleanField(default=False, blank=False)
+
+	""" Notification seen or not """
+	seen = models.BooleanField(default=False, blank=False)
+
 	def __str__(self):
 		return self.user.username+" "+self.user.__str__()
 
@@ -105,20 +105,38 @@ class Activity(models.Model):
 
 from .models import Notification
 
+
+def sync_notif_add(notification, generators):
+	for user in generators:
+		try:
+			activity = Activity.objects.get(user = user, notification = notification)
+		except:
+			activity = Activity.objects.create(user=user, notification=notification)
+			activity.save()
+		if not activity:
+			activity = Activity.objects.create(user=user, notification=notification)
+			activity.save()
+
+
+def sync_notif_delete(notification, generators):
+	for activ in notification.activities.all():
+		if activ.user not in generators:
+			activ.delete()
+
+
 @receiver(post_save, sender=Notification)
 def create_activity(sender, instance, created, **kwargs):
 	generators = instance.generator.all()
-	for user in generators:
-		try:
-			activity = Activity.objects.get(user = user, notification = instance)
-		except:
-			activity = Activity.objects.create(user=user, notification=instance)
-			activity.save()
-		if not activity:
-			activity = Activity.objects.create(user=user, notification=instance)
-			activity.save()
-	for activ in instance.activities.all():
-		print(activ.user not in generators)
-		if activ.user not in generators:
-			activ.delete()
-			activ.save()
+	sync_notif_add(instance, generators)
+	sync_notif_delete(instance, generators)
+	
+
+
+@receiver(post_delete, sender=Notification)
+def delete_activity(sender, instance, *args, **kwargs):
+	instance.activities.all().delete()
+
+
+@receiver(post_delete, sender=Activity)
+def remove_activity_trace(sender, instance, *args, **kwargs):
+	instance.notification.generator.remove(instance.user)
