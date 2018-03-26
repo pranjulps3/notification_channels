@@ -159,6 +159,15 @@ To access all notifications for an object where it has been the `target` you can
 
 
 
+### Discarding notifications
+
+Deleting notifications is easy in Notification Channels. You just need to write
+
+`Notification.objects.discard(**kwargs)`
+
+Note that kwargs must contain all fields required to get a unique notification instance or else it will throw an error.
+It's important that you use `discard()` function instead of `delete()` to remove notifications as for the merged notifications, deleting it could cost permanent loss of some data. `discard()` function takes care of such situations and in all others deletes the notification along with its activity object(if any).
+
 ### Activity Class
 
 Here I will briefly describe the Activity class attributes so that you can manipulate them the way you want.
