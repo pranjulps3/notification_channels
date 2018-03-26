@@ -1,5 +1,4 @@
-<ul>
-	{% for notif in notifications %}
-	<a href="{{ notif.reference_url }}"><li>{{ notif }}</li></a>
-	{% endfor %}
-</ul>
+{% load notif_tags %}
+{% for notif in notifications %}
+	{% get_notification notif %}
+{% endfor %}

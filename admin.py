@@ -1,5 +1,7 @@
 from django.contrib import admin
-from .models import Notification, Activity
+
+from .models import Activity, Notification
+
 # Register your models here.
 
 
