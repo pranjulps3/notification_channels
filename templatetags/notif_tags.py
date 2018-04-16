@@ -1,5 +1,6 @@
 from django import template
 from django.contrib.contenttypes.models import ContentType
+
 from notification_channels.models import Notification
 
 register = template.Library()
@@ -16,6 +17,16 @@ def get_all_notifs(user):
 @register.simple_tag(name='get_notif_count')
 def get_notif_count(user):
     return user.notifications.all().count()
+
+
+@register.simple_tag(name='get_count_type_unseen')
+def get_count_type_unseen(notif_type, user):
+    return user.notifications.filter(notif_type=notif_type, seen=False).count()
+
+
+@register.simple_tag(name='get_unseen_notif_count')
+def get_unseen_notif_count(user):
+    return user.notifications.filter(seen=False).count()
 
 
 @register.simple_tag(name='get_related_notifs')
