@@ -55,15 +55,15 @@ Here are some examples to make the difference between Action object and Target m
 
 * "Alice liked your profile picture"
 
-	Here Profile Picture object (if exists) will be the Action object and like object (if exists) will be the Target.
+    Here Profile Picture object (if exists) will be the Action object and like object (if exists) will be the Target.
 
 * "Prof. Atul Gupta added new module to Fusion"
 
-	Here Fusion object (if exists) will be the Action object and module object (if exists) will be the Target.
+    Here Fusion object (if exists) will be the Action object and module object (if exists) will be the Target.
 
 * "Prof. M. K. Bajpai added a new course"
 
-	Here course object (if exists) will be the Action object and Target will be none.
+    Here course object (if exists) will be the Action object and Target will be none.
     
 These examples should make it clear that Target cannot exist without Action object, at least not in Notification Channels.
 
@@ -84,7 +84,7 @@ Let's take a look at how and when notifications get merged.
 Now Let's take some examples of creating simple notifications.
 
 * A basic notification
-	
+    
     ```
     from notification_channels.models import Notification
     .
@@ -99,7 +99,7 @@ Now Let's take some examples of creating simple notifications.
     
     
 * A Complex Notification
-	
+    
     ```
     n = Notification.objects.create(recipient=user1, generator=user2, action_verb="commented on", action_obj=post, target=comment)
     ```
@@ -109,7 +109,7 @@ Now Let's take some examples of creating simple notifications.
     ```
     
 * Merging Notification
-	
+    
     ```
     n = Notification.objects.create(recipient=user1, generator=user2, action_verb="commented on", action_obj=post)
     n = Notification.objects.create(recipient=user1, generator=user3, action_verb="commented on", action_obj=post)
@@ -117,14 +117,25 @@ Now Let's take some examples of creating simple notifications.
     ```
     Output
     
- 	```
+    ```
     >> <Notification: user2 and user3 commented on post>
-	```
+    ```
     
     
 Merging two or more notifications helps improve time to load all notifications and makes more sense. 
 
 Merging two or more notifications in Notification Channels with different generators creates Activity objects for both the generators. The Activity object is created for a single generator too. The Activity object can be accessed to get information about the actions performed by any user and create an Activity stream accordingly. It's up to you to decide.  We will talk about this more later in the doc.
+
+### Live Notify
+
+Notification Channels provides you with the ability to notify the recipient of the notification live if he is logged in to his account. This is with the use of channels and web sockets incorporated in a Notification Class function `notify()`.
+
+By default whenever a notification is created, Notification Channels will run the `notify` function. You disable the default behaviour by adding this to your `settings.py`.
+```
+NOTIFY_ON_CREATE=False
+```
+
+`notify` shows the `notif_type`(if notification has one), `reference_url`, and `display_text` and shows it on to recipients screen. It uses `reference_url` to redirect the user to the desired url targeted by the notification. 
 
 ### Accessibility
 
@@ -158,15 +169,6 @@ To access all notifications for an object where it has been the `target` you can
 `object.related_notifications.all()`
 
 
-
-### Discarding notifications
-
-Deleting notifications is easy in Notification Channels. You just need to write
-
-`Notification.objects.discard(**kwargs)`
-
-Note that kwargs must contain all fields required to get a unique notification instance or else it will throw an error.
-It's important that you use `discard()` function instead of `delete()` to remove notifications as for the merged notifications, deleting it could cost permanent loss of some data. `discard()` function takes care of such situations and in all others deletes the notification along with its activity object(if any).
 
 ### Activity Class
 
